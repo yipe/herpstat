@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an entity, option or improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like to do?
+      description: The goal or problem, rather than a specific solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Suggested change
+      description: >-
+        Note that the integration is read-only by design: it never changes settings on the thermostat.
+  - type: input
+    id: model
+    attributes:
+      label: Herpstat model and firmware
+      placeholder: Herpstat 2 SpyderWeb, firmware 5.2
