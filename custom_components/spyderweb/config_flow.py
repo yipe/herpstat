@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import voluptuous as vol
+if TYPE_CHECKING:  # type-checked against the minimum supported Home Assistant (2025.8)
+    import voluptuous as vol
+else:
+    try:  # Home Assistant 2026.9+ validates with probatio; voluptuous is only a leftover dependency there
+        import probatio as vol
+    except ImportError:
+        import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,

@@ -204,8 +204,9 @@ Issues and pull requests are welcome.
 - **Most wanted:** payloads from models and setups not tested yet: Herpstat 1, 4 or 6 SpyderWeb, humidity probes,
   other firmware versions, and anything in the `ramping` field while a ramp is running.
 
-Development uses [uv](https://docs.astral.sh/uv/) with Python 3.13 and the Home Assistant 2025.8.3 test harness.
-These are the checks CI runs:
+Development uses [uv](https://docs.astral.sh/uv/) with Python 3.13 and the Home Assistant 2025.8.3 test harness
+(the minimum supported version). CI runs these checks, plus the tests against the newest Home Assistant release
+every day:
 
 ```sh
 uv sync

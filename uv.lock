@@ -977,7 +977,6 @@ dev = [
     { name = "cached-ipaddress" },
     { name = "mypy" },
     { name = "pycares" },
-    { name = "pytest-cov" },
     { name = "pytest-homeassistant-custom-component" },
 ]
 
@@ -990,7 +989,6 @@ dev = [
     { name = "cached-ipaddress", specifier = "==0.10.0" },
     { name = "mypy", specifier = ">=2.4.0" },
     { name = "pycares", specifier = "<5" },
-    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "pytest-homeassistant-custom-component", specifier = "==0.13.272" },
 ]
 

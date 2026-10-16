@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import pytest
 import yaml
 from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
@@ -31,6 +32,8 @@ def _state(hass: HomeAssistant, object_id: str) -> str:
     return hass.states.get(f"sensor.herpstat_{object_id}").state
 
 
+# The package's 08:00/20:00 time triggers stay scheduled after the test; that is expected.
+@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_day_highs_night_lows_and_averages(hass: HomeAssistant, freezer, caplog) -> None:
     hass.config.units = US_CUSTOMARY_SYSTEM  # matches the real HA (°F)
     tz = dt_util.get_time_zone(hass.config.time_zone)
@@ -92,6 +95,8 @@ async def test_day_highs_night_lows_and_averages(hass: HomeAssistant, freezer, c
     assert "Error" not in caplog.text, caplog.text
 
 
+# The package's 08:00/20:00 time triggers stay scheduled after the test; that is expected.
+@pytest.mark.parametrize("expected_lingering_timers", [True])
 async def test_average_keeps_only_last_seven(hass: HomeAssistant, freezer) -> None:
     hass.config.units = US_CUSTOMARY_SYSTEM  # matches the real HA (°F)
     tz = dt_util.get_time_zone(hass.config.time_zone)

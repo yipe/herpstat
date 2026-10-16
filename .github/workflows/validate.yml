@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: "0 6 * * 1"
+    - cron: "0 6 * * *"  # daily, as HACS recommends; also catches breaking changes in new Home Assistant releases
   workflow_dispatch:
 
 permissions:
@@ -14,23 +14,41 @@ jobs:
   hassfest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: home-assistant/actions/hassfest@master
+      - uses: actions/checkout@v7
+      - name: Hassfest validation
+        uses: home-assistant/actions/hassfest@master
 
   hacs:
     runs-on: ubuntu-latest
     steps:
-      - uses: hacs/action@main
+      - name: HACS validation
+        uses: hacs/action@main
         with:
           category: integration
 
   tests:
+    name: tests (minimum Home Assistant, locked)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
       - run: uv sync --locked --python 3.13
       - run: uv run pytest --cov=custom_components.spyderweb --cov-fail-under=95
       - run: uv run mypy --strict custom_components/spyderweb
       - run: uvx ruff check .
       - run: uvx ruff format --check .
+
+  tests-latest:
+    name: tests (newest Home Assistant)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+      - name: Install the newest Home Assistant test harness
+        run: |
+          uv venv --python 3.14
+          uv pip install pytest-homeassistant-custom-component pytest-cov
+          # The tests drive HA's DHCP component, whose requirements the harness doesn't install.
+          uv pip install $(.venv/bin/python -c "import json, pathlib, homeassistant as h; print(' '.join(json.loads((pathlib.Path(h.__file__).parent / 'components/dhcp/manifest.json').read_text())['requirements']))")
+          .venv/bin/python -c "from homeassistant.const import __version__; print('Home Assistant', __version__)"
+      - run: .venv/bin/python -m pytest -p no:cacheprovider
