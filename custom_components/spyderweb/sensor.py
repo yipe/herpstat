@@ -1,4 +1,4 @@
-"""Sensors. Measurement sensors feed HA's recorder and long-term statistics (the history store)."""
+"""Sensors. Measurement sensors feed HA's recorder and long-term statistics."""
 
 from __future__ import annotations
 
@@ -18,7 +18,10 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .api import Output, System
 from .const import CONF_TEMPERATURE_UNIT
 from .coordinator import SpyderWebConfigEntry, SpyderWebCoordinator
-from .entity import SpyderWebEntity
+from .entity import SpyderWebEntity, SpyderWebOutputEntity
+
+# The coordinator fetches the data, so entity updates need no limit.
+PARALLEL_UPDATES = 0
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -34,101 +37,100 @@ class SystemSensorDescription(SensorEntityDescription):
 
 def _temp(
     key: str,
-    name: str,
     fn: Callable[[Output], float | None],
     *,
     diagnostic: bool = False,
     measurement: bool = True,
+    enabled: bool = True,
 ) -> OutputSensorDescription:
     # Unit is set per entity from the config entry option (the device doesn't report it).
     return OutputSensorDescription(
         key=key,
-        name=name,
+        translation_key=key,
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT if measurement else None,
         entity_category=EntityCategory.DIAGNOSTIC if diagnostic else None,
+        entity_registry_enabled_default=enabled,
         suggested_display_precision=1,
         value_fn=fn,
     )
 
 
 def _humidity(
-    key: str, name: str, fn: Callable[[Output], float | None], *, diagnostic: bool = False
+    key: str, fn: Callable[[Output], float | None], *, diagnostic: bool = False
 ) -> OutputSensorDescription:
     return OutputSensorDescription(
         key=key,
-        name=name,
+        translation_key=key,
         device_class=SensorDeviceClass.HUMIDITY,
         native_unit_of_measurement=PERCENTAGE,
         state_class=None if diagnostic else SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.DIAGNOSTIC if diagnostic else None,
+        entity_registry_enabled_default=not diagnostic,
         humidity_only=True,
         value_fn=fn,
     )
 
 
-def _text(key: str, name: str, icon: str, fn: Callable[[Output], str | None]) -> OutputSensorDescription:
+def _text(key: str, fn: Callable[[Output], str | None], *, enabled: bool = True) -> OutputSensorDescription:
     return OutputSensorDescription(
-        key=key, name=name, icon=icon, entity_category=EntityCategory.DIAGNOSTIC, value_fn=fn
+        key=key,
+        translation_key=key,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=enabled,
+        value_fn=fn,
     )
 
 
 OUTPUT_SENSORS: tuple[OutputSensorDescription, ...] = (
-    _temp("temperature", "temperature", lambda o: o.temperature),
-    _temp("setpoint", "setpoint", lambda o: o.setpoint),
+    _temp("temperature", lambda o: o.temperature),
+    _temp("setpoint", lambda o: o.setpoint),
     OutputSensorDescription(
         key="power",
-        name="power",
+        translation_key="power",
         native_unit_of_measurement=PERCENTAGE,
         state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:flash",
         value_fn=lambda o: o.power,
     ),
-    _humidity("humidity", "humidity", lambda o: o.humidity),
+    _humidity("humidity", lambda o: o.humidity),
     # "Since last reset" extremes and thresholds: diagnostic, no statistics.
-    _temp(
-        "temperature_max", "temperature max", lambda o: o.temperature_max, diagnostic=True, measurement=False
-    ),
-    _temp(
-        "temperature_min", "temperature min", lambda o: o.temperature_min, diagnostic=True, measurement=False
-    ),
-    _temp("high_alarm", "high alarm", lambda o: o.high_alarm, diagnostic=True, measurement=False),
-    _temp("low_alarm", "low alarm", lambda o: o.low_alarm, diagnostic=True, measurement=False),
+    _temp("temperature_max", lambda o: o.temperature_max, diagnostic=True, measurement=False),
+    _temp("temperature_min", lambda o: o.temperature_min, diagnostic=True, measurement=False),
+    _temp("high_alarm", lambda o: o.high_alarm, diagnostic=True, measurement=False),
+    _temp("low_alarm", lambda o: o.low_alarm, diagnostic=True, measurement=False),
     _temp(
         "end_of_ramp_setpoint",
-        "end of ramp setpoint",
         lambda o: o.end_of_ramp_setpoint,
         diagnostic=True,
         measurement=False,
+        enabled=False,  # only meaningful while a ramp is running
     ),
-    _humidity("humidity_max", "humidity max", lambda o: o.humidity_max, diagnostic=True),
-    _humidity("humidity_min", "humidity min", lambda o: o.humidity_min, diagnostic=True),
+    _humidity("humidity_max", lambda o: o.humidity_max, diagnostic=True),
+    _humidity("humidity_min", lambda o: o.humidity_min, diagnostic=True),
     OutputSensorDescription(
         key="power_limit",
-        name="power limit",
+        translation_key="power_limit",
         native_unit_of_measurement=PERCENTAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:flash-outline",
         value_fn=lambda o: o.power_limit,
     ),
-    _text("mode", "mode", "mdi:cog-outline", lambda o: o.mode),
-    _text("ramping", "ramping", "mdi:chart-timeline-variant", lambda o: o.ramping),
-    _text("error", "error", "mdi:alert-circle-outline", lambda o: o.error_description),
+    _text("mode", lambda o: o.mode),
+    _text("ramping", lambda o: o.ramping),
+    # Same text as the problem binary sensor's attributes.
+    _text("error", lambda o: o.error_description, enabled=False),
 )
 
 SYSTEM_SENSORS: tuple[SystemSensorDescription, ...] = (
     SystemSensorDescription(
         key="power_resets",
-        name="Power resets",
+        translation_key="power_resets",
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:restart",
         value_fn=lambda s: s.power_resets,
     ),
     SystemSensorDescription(
         key="safety_relay",
-        name="Safety relay",
+        translation_key="safety_relay",
         entity_category=EntityCategory.DIAGNOSTIC,
-        icon="mdi:electric-switch",
         value_fn=lambda s: s.safety_relay,
     ),
 )
@@ -144,36 +146,27 @@ async def async_setup_entry(
     entities: list[SensorEntity] = [SystemSensor(coordinator, desc) for desc in SYSTEM_SENSORS]
     for output in coordinator.data.outputs.values():
         entities.extend(
-            OutputSensor(coordinator, output, desc, unit)
+            OutputSensor(coordinator, output.index, desc, unit)
             for desc in OUTPUT_SENSORS
             if not desc.humidity_only or output.has_humidity
         )
     async_add_entities(entities)
 
 
-class OutputSensor(SpyderWebEntity, SensorEntity):
+class OutputSensor(SpyderWebOutputEntity, SensorEntity):
     entity_description: OutputSensorDescription
 
     def __init__(
         self,
         coordinator: SpyderWebCoordinator,
-        output: Output,
+        index: int,
         description: OutputSensorDescription,
         temperature_unit: str,
     ) -> None:
-        super().__init__(
-            coordinator,
-            key=f"output{output.index}_{description.key}",
-            name=f"{output.nickname} {description.name}",
-        )
-        self._index = output.index
+        super().__init__(coordinator, index, description.key)
+        self.entity_description = description
         if description.device_class is SensorDeviceClass.TEMPERATURE:
             self._attr_native_unit_of_measurement = temperature_unit
-        self.entity_description = description
-
-    @property
-    def available(self) -> bool:
-        return super().available and self._index in self.coordinator.data.outputs
 
     @property
     def native_value(self) -> float | int | str | None:
@@ -184,7 +177,7 @@ class SystemSensor(SpyderWebEntity, SensorEntity):
     entity_description: SystemSensorDescription
 
     def __init__(self, coordinator: SpyderWebCoordinator, description: SystemSensorDescription) -> None:
-        super().__init__(coordinator, key=description.key, name=description.name)
+        super().__init__(coordinator, key=description.key)
         self.entity_description = description
 
     @property

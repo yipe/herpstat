@@ -11,7 +11,7 @@ from homeassistant.const import CONF_HOST, UnitOfTemperature
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMocker
 
-from custom_components.spyderweb.const import CONF_SCAN_INTERVAL, CONF_TEMPERATURE_UNIT, DOMAIN
+from custom_components.spyderweb.const import CONF_TEMPERATURE_UNIT, DOMAIN
 
 HOST = "192.168.1.233"
 URL = f"http://{HOST}/RAWSTATUS"
@@ -40,5 +40,5 @@ def entry() -> MockConfigEntry:
         title="herpstat",
         unique_id="aa:bb:cc:dd:ee:ff",
         data={CONF_HOST: HOST},
-        options={CONF_SCAN_INTERVAL: 30, CONF_TEMPERATURE_UNIT: UnitOfTemperature.FAHRENHEIT},
+        options={CONF_TEMPERATURE_UNIT: UnitOfTemperature.FAHRENHEIT},
     )

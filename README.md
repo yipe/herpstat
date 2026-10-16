@@ -29,30 +29,125 @@ Install **Herpstat SpyderWeb (local)**, then restart Home Assistant.
 Then: Settings → Devices & services → **Add integration** → *Herpstat SpyderWeb (local)* → enter the IP address
 and the temperature unit your Herpstat displays (the device doesn't report it).
 
+## Supported devices
+
+Herpstat **SpyderWeb** models (1, 2, 4 and 6 outputs) on firmware that has the `/RAWSTATUS` page (2.7 or later;
+2.8+ also reports alarm thresholds). Tested on a Herpstat 2 SpyderWeb, firmware 5.2. Other output counts and
+humidity probes are handled from the payload but not yet tested on real hardware: reports welcome.
+Herpstats without Wi-Fi (non-SpyderWeb) can't be supported.
+
 ## What you get
 
-One device per Herpstat. Entity names use the output nicknames set on the device (e.g. "Lamp", "Heat").
+One device per Herpstat. Entity names use the output nicknames set on the device (e.g. "Lamp temperature").
 
 | Per output | Notes |
 |---|---|
 | Temperature, setpoint, power % | Recorded as long-term statistics (history charts) |
 | Humidity | Only if a humidity probe is connected |
-| Problem | `on` when the output reports an error code; description in attributes |
-| Mode, ramping, max power, alarm thresholds, high/low since reset, end-of-ramp setpoint, error text | Diagnostic |
+| Problem | `on` when the output reports an error code; code and description in attributes |
+| Mode, ramping, max power, alarm thresholds, high/low since reset | Diagnostic |
+| End-of-ramp setpoint, error text, humidity max/min | Diagnostic, **disabled by default** (enable in the entity settings) |
 
 Per device: **Safety relay tripped** (problem), relay status text, power-reset count.
 
-**Options:** poll interval (default 30 s, minimum 10 s: the vendor warns faster polling of `/RAWSTATUS` can block
-the thermostat's other tasks) and temperature unit. **Reconfigure** changes the IP address if it moves.
+**Options:** temperature unit. **Reconfigure** (device page → ⋮) changes the IP address if it moves.
 
-## Good to know
+## How data is updated
 
-- While the Herpstat's web configuration page is open, `/RAWSTATUS` keeps returning the
-  last values, so readings look frozen until you exit the menu.
+Home Assistant reads `/RAWSTATUS` every **30 seconds**: one small HTTP request per Herpstat. The vendor warns that
+polling faster than every 10 seconds can block the thermostat's other tasks, so the interval isn't a setting.
+If you need a different interval, [turn off polling for the entry and drive updates from an automation](https://www.home-assistant.io/common-tasks/general/#defining-a-custom-polling-interval),
+but stay at 10 seconds or slower.
+
+If the Herpstat can't be reached, its entities become *unavailable* and recover on the next successful update.
+
+## Use cases
+
+- See enclosure temperatures and heater/lamp power from anywhere, with history.
+- Get a notification when a probe fails, the safety relay trips, or the thermostat drops off the network.
+- Check that a day/night schedule really turns the basking lamp off at night.
+
+## Automation examples
+
+Notify on any problem, or when the Herpstat has been unreachable for 10 minutes:
+
+```yaml
+automation:
+  - alias: Herpstat problem
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.herpstat_safety_relay_tripped
+          - binary_sensor.herpstat_lamp_problem
+          - binary_sensor.herpstat_heat_problem
+        to: "on"
+      - trigger: state
+        entity_id: sensor.herpstat_lamp_temperature
+        to: unavailable
+        for: "00:10:00"
+    actions:
+      - action: notify.notify
+        data:
+          title: Herpstat
+          message: "{{ trigger.to_state.name }}: {{ trigger.to_state.state }}"
+```
+
+Warn if the basking lamp is still powered at night, whether it never turned off when night began or came back on
+later (adjust the times to your schedule; here night starts at 20:00):
+
+```yaml
+  - alias: Basking lamp on at night
+    triggers:
+      - trigger: time  # still on 15 minutes after night began
+        at: "20:15:00"
+      - trigger: numeric_state  # came back on during the night
+        entity_id: sensor.herpstat_lamp_power
+        above: 0
+        for: "00:15:00"
+    conditions:
+      - condition: numeric_state
+        entity_id: sensor.herpstat_lamp_power
+        above: 0
+      - condition: time
+        after: "20:15:00"
+        before: "07:45:00"
+    actions:
+      - action: notify.notify
+        data:
+          message: "Basking lamp still at {{ states('sensor.herpstat_lamp_power') }}% power."
+```
+
+Entity IDs depend on your device and output nicknames; check yours under Settings → Entities.
+
+## Known limitations
+
+- **Read-only.** Setpoints, schedules and modes are changed on the Herpstat itself.
+- **No discovery.** The device's network name is its user-set nickname and its MAC prefix is shared by many
+  ESP32 devices, so it is added by IP address.
+- **Temperature unit is not reported** by the device; pick it during setup (changeable in the options).
+- While the Herpstat's web configuration page is open, `/RAWSTATUS` keeps returning the last values, so readings
+  look frozen until you leave it.
 - Humidity entities are created when the integration loads; after plugging in a humidity probe, reload the
   integration.
-- **Download diagnostics** (device page → ⋮) includes the raw `/RAWSTATUS` payload with MAC and IP redacted:
-  please attach it to bug reports.
+- Only the live status is read; the device's own 5-minute chart history isn't imported.
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Repair: "Herpstat /RAWSTATUS is turned off" (often after a firmware update resets settings) | Re-enable it on the Herpstat (see [Requirements](#requirements)); the repair clears itself on the next update |
+| Entities unavailable, "Could not reach the Herpstat" | Open `http://<ip>/RAWSTATUS` in a browser. If the IP changed, use **Reconfigure**; give it a DHCP reservation |
+| Readings stopped changing | Close the Herpstat's web configuration page |
+| Temperatures off by a °F/°C conversion | Integration options → temperature unit must match the Herpstat's display |
+
+For bug reports, attach **Download diagnostics** (device page → ⋮): it contains the raw `/RAWSTATUS` payload with
+MAC and IP redacted.
+
+## Removal
+
+1. Settings → Devices & services → **Herpstat SpyderWeb (local)** → ⋮ → **Delete**.
+2. Uninstall it in HACS (or delete `config/custom_components/spyderweb`), then restart Home Assistant.
+3. Optionally untick **Enable /RAWSTATUS Page** in the Herpstat's Admin page.
 
 ## Examples
 

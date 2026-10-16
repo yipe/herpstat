@@ -8,11 +8,17 @@ import aiohttp
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
+from custom_components.spyderweb.const import DOMAIN, rawstatus_issue_id
+
 from .conftest import URL, mock_rawstatus
+
+DISABLED_501 = {"status": 501, "text": "Handler did not handle the request"}
 
 
 async def _setup(hass: HomeAssistant, entry) -> None:
@@ -44,9 +50,15 @@ async def test_entities(hass: HomeAssistant, aioclient_mock, payload, entry) -> 
 
     # No RH probe: humidity entities are not created.
     assert hass.states.get("sensor.herpstat_lamp_humidity") is None
-    # 2 system + 12 per output; 1 relay + 1 per output.
-    assert len(hass.states.async_entity_ids("sensor")) == 26
+    # 2 system + 10 enabled per output; 1 relay + 1 per output.
+    assert len(hass.states.async_entity_ids("sensor")) == 22
     assert len(hass.states.async_entity_ids("binary_sensor")) == 3
+
+    # Rarely used entities exist but are disabled by default.
+    registry = er.async_get(hass)
+    for object_id in ("lamp_error", "lamp_end_of_ramp_setpoint", "heat_error"):
+        reg_entry = registry.async_get(f"sensor.herpstat_{object_id}")
+        assert reg_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
 async def test_humidity_entities_when_probe_present(
@@ -57,6 +69,8 @@ async def test_humidity_entities_when_probe_present(
     await _setup(hass, entry)
     assert hass.states.get("sensor.herpstat_heat_humidity").state == "55.0"
     assert hass.states.get("sensor.herpstat_lamp_humidity") is None
+    reg_entry = er.async_get(hass).async_get("sensor.herpstat_heat_humidity_max")
+    assert reg_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
 async def test_poll_failure_marks_unavailable_then_recovers(
@@ -70,6 +84,9 @@ async def test_poll_failure_marks_unavailable_then_recovers(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
     await hass.async_block_till_done()
     assert hass.states.get("sensor.herpstat_lamp_temperature").state == STATE_UNAVAILABLE
+    error = entry.runtime_data.last_exception
+    assert error.translation_key == "cannot_connect"
+    assert str(error).startswith(f"Could not reach the Herpstat at {entry.data['host']}: ")
 
     aioclient_mock.clear_requests()
     payload["output1"]["probereadingTEMP"] = 95.5
@@ -80,11 +97,47 @@ async def test_poll_failure_marks_unavailable_then_recovers(
 
 
 async def test_first_refresh_failure_retries(hass: HomeAssistant, aioclient_mock, entry) -> None:
-    aioclient_mock.get(URL, status=501, text="Handler did not handle the request")
+    aioclient_mock.get(URL, **DISABLED_501)
     entry.add_to_hass(hass)
     await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.SETUP_RETRY
+    assert ir.async_get(hass).async_get_issue(DOMAIN, rawstatus_issue_id(entry.entry_id))
+
+
+async def test_repair_issue_when_rawstatus_disabled_later(
+    hass: HomeAssistant, aioclient_mock, payload, entry
+) -> None:
+    mock_rawstatus(aioclient_mock, payload)
+    await _setup(hass, entry)
+    issues = ir.async_get(hass)
+    issue_id = rawstatus_issue_id(entry.entry_id)
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+
+    aioclient_mock.clear_requests()  # e.g. a firmware update reset the device's settings
+    aioclient_mock.get(URL, **DISABLED_501)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
+    issue = issues.async_get_issue(DOMAIN, issue_id)
+    assert issue.translation_key == "rawstatus_disabled"
+    assert issue.severity is ir.IssueSeverity.ERROR
+    assert entry.runtime_data.last_exception.translation_key == "rawstatus_disabled"
+
+    aioclient_mock.clear_requests()  # user re-enables it: issue clears on the next poll
+    mock_rawstatus(aioclient_mock, payload)
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=62))
+    await hass.async_block_till_done()
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+
+
+async def test_removing_entry_clears_issue(hass: HomeAssistant, aioclient_mock, entry) -> None:
+    aioclient_mock.get(URL, **DISABLED_501)
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert ir.async_get(hass).async_get_issue(DOMAIN, rawstatus_issue_id(entry.entry_id)) is None
 
 
 async def test_unload(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
@@ -92,3 +145,15 @@ async def test_unload(hass: HomeAssistant, aioclient_mock, payload, entry) -> No
     await _setup(hass, entry)
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert entry.state is ConfigEntryState.NOT_LOADED
+
+
+async def test_poll_invalid_response(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
+    mock_rawstatus(aioclient_mock, payload)
+    await _setup(hass, entry)
+
+    aioclient_mock.clear_requests()  # something else answered on that IP
+    aioclient_mock.get(URL, text="<html>not a herpstat</html>")
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=31))
+    await hass.async_block_till_done()
+    assert hass.states.get("sensor.herpstat_lamp_temperature").state == STATE_UNAVAILABLE
+    assert entry.runtime_data.last_exception.translation_key == "invalid_response"

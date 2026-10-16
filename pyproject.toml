@@ -8,6 +8,8 @@ requires-python = ">=3.13.2,<3.14"
 dev = [
     "pytest-homeassistant-custom-component==0.13.272",  # pins homeassistant==2025.8.3
     "pycares<5",  # aiodns 3.5 (pinned by HA 2025.8) breaks on pycares 5
+    "pytest-cov>=6.2.1",
+    "mypy>=2.4.0",
 ]
 
 [tool.uv]

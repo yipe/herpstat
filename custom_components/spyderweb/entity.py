@@ -12,12 +12,11 @@ from .coordinator import SpyderWebCoordinator
 class SpyderWebEntity(CoordinatorEntity[SpyderWebCoordinator]):
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: SpyderWebCoordinator, key: str, name: str) -> None:
+    def __init__(self, coordinator: SpyderWebCoordinator, key: str) -> None:
         super().__init__(coordinator)
         system = coordinator.data.system
         mac = format_mac(system.mac)
         self._attr_unique_id = f"{mac}_{key}"
-        self._attr_name = name
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, mac)},
             connections={(CONNECTION_NETWORK_MAC, mac)},
@@ -27,3 +26,16 @@ class SpyderWebEntity(CoordinatorEntity[SpyderWebCoordinator]):
             sw_version=system.firmware,
             configuration_url=f"http://{coordinator.host}/",
         )
+
+
+class SpyderWebOutputEntity(SpyderWebEntity):
+    """Entity for one output; its name is prefixed with the output's nickname, e.g. "Lamp temperature"."""
+
+    def __init__(self, coordinator: SpyderWebCoordinator, index: int, key: str) -> None:
+        super().__init__(coordinator, key=f"output{index}_{key}")
+        self._index = index
+        self._attr_translation_placeholders = {"output": coordinator.data.outputs[index].nickname}
+
+    @property
+    def available(self) -> bool:
+        return super().available and self._index in self.coordinator.data.outputs

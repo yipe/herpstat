@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "sensor": {
+      "power": { "default": "mdi:flash" },
+      "power_limit": { "default": "mdi:flash-outline" },
+      "mode": { "default": "mdi:cog-outline" },
+      "ramping": { "default": "mdi:chart-timeline-variant" },
+      "error": { "default": "mdi:alert-circle-outline" },
+      "power_resets": { "default": "mdi:restart" },
+      "safety_relay": { "default": "mdi:electric-switch" }
+    }
+  }
+}

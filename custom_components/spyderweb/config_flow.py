@@ -1,4 +1,4 @@
-"""Config flow: device address; reconfigure: new address; options: poll interval and unit."""
+"""Config flow: device address; reconfigure: new address; options: temperature unit."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -19,13 +19,7 @@ from .api import (
     Status,
     fetch_status,
 )
-from .const import (
-    CONF_SCAN_INTERVAL,
-    CONF_TEMPERATURE_UNIT,
-    DEFAULT_SCAN_INTERVAL,
-    DOMAIN,
-    MIN_SCAN_INTERVAL,
-)
+from .const import CONF_TEMPERATURE_UNIT, DOMAIN
 
 UNITS = vol.In([UnitOfTemperature.FAHRENHEIT, UnitOfTemperature.CELSIUS])
 HOST_SCHEMA = vol.Schema({vol.Required(CONF_HOST): str})
@@ -62,10 +56,7 @@ class SpyderWebConfigFlow(ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(
                     title=status.system.nickname or "Herpstat",
                     data={CONF_HOST: host},
-                    options={
-                        CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
-                        CONF_TEMPERATURE_UNIT: user_input[CONF_TEMPERATURE_UNIT],
-                    },
+                    options={CONF_TEMPERATURE_UNIT: user_input[CONF_TEMPERATURE_UNIT]},
                 )
         schema = HOST_SCHEMA.extend(
             {vol.Required(CONF_TEMPERATURE_UNIT, default=UnitOfTemperature.FAHRENHEIT): UNITS}
@@ -95,7 +86,7 @@ class SpyderWebConfigFlow(ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry) -> SpyderWebOptionsFlow:
+    def async_get_options_flow(config_entry: ConfigEntry) -> SpyderWebOptionsFlow:
         return SpyderWebOptionsFlow()
 
 
@@ -103,19 +94,8 @@ class SpyderWebOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)
-        options = self.config_entry.options
+        unit = self.config_entry.options.get(CONF_TEMPERATURE_UNIT, UnitOfTemperature.FAHRENHEIT)
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_SCAN_INTERVAL,
-                        default=options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL, max=3600)),
-                    vol.Required(
-                        CONF_TEMPERATURE_UNIT,
-                        default=options.get(CONF_TEMPERATURE_UNIT, UnitOfTemperature.FAHRENHEIT),
-                    ): UNITS,
-                }
-            ),
+            data_schema=vol.Schema({vol.Required(CONF_TEMPERATURE_UNIT, default=unit): UNITS}),
         )

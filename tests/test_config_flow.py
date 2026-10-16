@@ -9,10 +9,11 @@ import pytest
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResultType, InvalidData
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 
 from custom_components.spyderweb.config_flow import normalize_host
-from custom_components.spyderweb.const import CONF_SCAN_INTERVAL, CONF_TEMPERATURE_UNIT, DOMAIN
+from custom_components.spyderweb.const import CONF_TEMPERATURE_UNIT, DOMAIN
 
 from .conftest import HOST, URL, mock_rawstatus
 
@@ -32,10 +33,7 @@ async def test_user_flow_creates_entry(hass: HomeAssistant, aioclient_mock, payl
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "herpstat"
     assert result["data"] == {CONF_HOST: HOST}
-    assert result["options"] == {
-        CONF_SCAN_INTERVAL: 30,
-        CONF_TEMPERATURE_UNIT: UnitOfTemperature.FAHRENHEIT,
-    }
+    assert result["options"] == {CONF_TEMPERATURE_UNIT: UnitOfTemperature.FAHRENHEIT}
     assert result["result"].unique_id == "aa:bb:cc:dd:ee:ff"
 
 
@@ -55,6 +53,18 @@ async def test_user_flow_errors(hass: HomeAssistant, aioclient_mock, kwargs, err
     assert result["errors"] == {"base": error}
 
 
+async def test_user_flow_recovers_after_error(hass: HomeAssistant, aioclient_mock, payload) -> None:
+    aioclient_mock.get(URL, status=501, text="Handler did not handle the request")
+    result = await _start(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    assert result["errors"] == {"base": "rawstatus_disabled"}
+
+    aioclient_mock.clear_requests()  # user enables /RAWSTATUS and submits again
+    mock_rawstatus(aioclient_mock, payload)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], USER_INPUT)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
 async def test_duplicate_updates_host(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
     entry.add_to_hass(hass)
     hass.config_entries.async_update_entry(entry, data={CONF_HOST: "10.0.0.9"})
@@ -66,26 +76,23 @@ async def test_duplicate_updates_host(hass: HomeAssistant, aioclient_mock, paylo
     assert entry.data[CONF_HOST] == HOST
 
 
-async def test_options_flow(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
+async def test_options_flow_changes_unit(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
+    hass.config.units = US_CUSTOMARY_SYSTEM
     mock_rawstatus(aioclient_mock, payload)
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
     result = await hass.config_entries.options.async_init(entry.entry_id)
-    with pytest.raises(InvalidData):  # below the vendor's 10 s floor
-        await hass.config_entries.options.async_configure(
-            result["flow_id"],
-            {CONF_SCAN_INTERVAL: 5, CONF_TEMPERATURE_UNIT: UnitOfTemperature.FAHRENHEIT},
-        )
+    assert list(result["data_schema"].schema) == [CONF_TEMPERATURE_UNIT]  # no polling field
     result = await hass.config_entries.options.async_configure(
-        result["flow_id"],
-        {CONF_SCAN_INTERVAL: 15, CONF_TEMPERATURE_UNIT: UnitOfTemperature.CELSIUS},
+        result["flow_id"], {CONF_TEMPERATURE_UNIT: UnitOfTemperature.CELSIUS}
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     await hass.async_block_till_done()
-    assert entry.options == {CONF_SCAN_INTERVAL: 15, CONF_TEMPERATURE_UNIT: UnitOfTemperature.CELSIUS}
-    assert entry.runtime_data.update_interval.total_seconds() == 15  # reloaded with new interval
+    assert entry.options == {CONF_TEMPERATURE_UNIT: UnitOfTemperature.CELSIUS}
+    # Reloaded: 72.0 is now read as °C and shown in the system's °F.
+    assert hass.states.get("sensor.herpstat_lamp_temperature").state == "161.6"
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .coordinator import SpyderWebConfigEntry, SpyderWebCoordinator
-from .entity import SpyderWebEntity
+from .entity import SpyderWebEntity, SpyderWebOutputEntity
+
+# The coordinator fetches the data, so entity updates need no limit.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -17,34 +20,28 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data
     entities: list[BinarySensorEntity] = [SafetyRelaySensor(coordinator)]
-    entities.extend(
-        OutputProblemSensor(coordinator, output.index, output.nickname)
-        for output in coordinator.data.outputs.values()
-    )
+    entities.extend(OutputProblemSensor(coordinator, index) for index in coordinator.data.outputs)
     async_add_entities(entities)
 
 
 class SafetyRelaySensor(SpyderWebEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_translation_key = "safety_relay_tripped"
 
     def __init__(self, coordinator: SpyderWebCoordinator) -> None:
-        super().__init__(coordinator, key="safety_relay_tripped", name="Safety relay tripped")
+        super().__init__(coordinator, key="safety_relay_tripped")
 
     @property
     def is_on(self) -> bool:
         return self.coordinator.data.system.safety_relay_tripped
 
 
-class OutputProblemSensor(SpyderWebEntity, BinarySensorEntity):
+class OutputProblemSensor(SpyderWebOutputEntity, BinarySensorEntity):
     _attr_device_class = BinarySensorDeviceClass.PROBLEM
+    _attr_translation_key = "output_problem"
 
-    def __init__(self, coordinator: SpyderWebCoordinator, index: int, nickname: str) -> None:
-        super().__init__(coordinator, key=f"output{index}_problem", name=f"{nickname} problem")
-        self._index = index
-
-    @property
-    def available(self) -> bool:
-        return super().available and self._index in self.coordinator.data.outputs
+    def __init__(self, coordinator: SpyderWebCoordinator, index: int) -> None:
+        super().__init__(coordinator, index, key="problem")
 
     @property
     def is_on(self) -> bool:
