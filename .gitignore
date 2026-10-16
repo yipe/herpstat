@@ -1,7 +1,35 @@
+# Secrets and private notes (never commit)
 password.txt
-__pycache__/
-.venv/
-.dev_config/
-.pytest_cache/
-.DS_Store
+.env
+.env.*
+secrets.yaml
 *.local.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Tooling caches and environments (uv.lock IS committed)
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local Home Assistant instance for development
+.dev_config/
+config/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

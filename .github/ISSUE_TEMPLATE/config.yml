@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Herpstat device support (Spyder Robotics)
+    url: https://spyderrobotics.com/index.php?main_page=page&id=1&chapter=1
+    about: Problems with the thermostat itself (heating, probes, Wi-Fi setup) go to the manufacturer.

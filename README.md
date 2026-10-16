@@ -1,12 +1,37 @@
+<p align="center">
+  <img src="custom_components/spyderweb/brand/icon.png" alt="" width="96">
+</p>
+
 # Herpstat SpyderWeb for Home Assistant (local)
+
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![Validate](https://github.com/yipe/herpstat/actions/workflows/validate.yml/badge.svg)](https://github.com/yipe/herpstat/actions/workflows/validate.yml)
+[![Home Assistant 2025.8+](https://img.shields.io/badge/Home%20Assistant-2025.8%2B-41BDF5.svg)](https://www.home-assistant.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Read-only Home Assistant integration for [Spyder Robotics](https://spyderrobotics.com/) **Herpstat SpyderWeb**
 reptile thermostats. It polls the thermostat's local `/RAWSTATUS` JSON page over your LAN: no cloud, no login,
-and it never changes a setting.
+and it never changes a setting. The thermostat keeps regulating on its own, so an outage in Home Assistant never
+affects heating.
+
+![Example dashboard showing basking lamp and heater temperatures, power gauges and charts](docs/images/dashboard.png)
+<sub>The [example dashboard](examples/dashboard.yaml) on its first day.</sub>
 
 > Unofficial. Not affiliated with or endorsed by Spyder Robotics. "Herpstat" and "SpyderWeb" are their trademarks.
 
-The thermostat keeps regulating on its own. Home Assistant only watches it, so an outage here never affects heating.
+**Contents:** [Features](#features) · [Requirements](#requirements) · [Install](#install) ·
+[Supported devices](#supported-devices) · [Entities](#what-you-get) · [Automations](#automation-examples) ·
+[Limitations](#known-limitations) · [Troubleshooting](#troubleshooting) · [Removal](#removal) ·
+[Contributing](#contributing)
+
+## Features
+
+- Temperature, setpoint and power for every output, recorded as long-term statistics for charts.
+- Problem sensors for probe errors and a tripped safety relay, ready for notifications.
+- A Home Assistant repair notice when `/RAWSTATUS` gets switched off, for example by a firmware update.
+- Local and read-only, with a retry for the device's occasional cut-off responses.
+- Set up from the UI; change the IP later with **Reconfigure**; redacted **diagnostics** for bug reports.
+- An example dashboard and a day-high/night-low statistics package.
 
 ## Requirements
 
@@ -16,17 +41,20 @@ The thermostat keeps regulating on its own. Home Assistant only watches it, so a
   Check it works: `http://<herpstat-ip>/RAWSTATUS` should show JSON.
 - A fixed IP for the Herpstat (a DHCP reservation on your router) is recommended.
 
-Tested on a Herpstat 2 SpyderWeb, firmware 5.2. Other output counts (1/2/4/6) and humidity probes are handled
-from the payload but not yet tested on real hardware. Reports welcome.
-
 ## Install
 
-**HACS:** HACS → ⋮ → Custom repositories → add `https://github.com/yipe/herpstat`, type *Integration*.
-Install **Herpstat SpyderWeb (local)**, then restart Home Assistant.
+[![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=yipe&repository=herpstat&category=integration)
+
+**HACS:** use the button above, or HACS → ⋮ → Custom repositories → add `https://github.com/yipe/herpstat`, type
+*Integration*. Download **Herpstat SpyderWeb (local)**, then restart Home Assistant.
 
 **Manual:** copy `custom_components/spyderweb` into your `config/custom_components/` folder and restart.
 
-Then: Settings → Devices & services → **Add integration** → *Herpstat SpyderWeb (local)* → enter the IP address
+Then add the integration:
+
+[![Open your Home Assistant instance and start setting up the integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=spyderweb)
+
+Or go to Settings → Devices & services → **Add integration** → *Herpstat SpyderWeb (local)*. Enter the IP address
 and the temperature unit your Herpstat displays (the device doesn't report it).
 
 ## Supported devices
@@ -161,12 +189,23 @@ MAC and IP redacted.
 - [`examples/packages/herpstat_day_night.yaml`](examples/packages/herpstat_day_night.yaml): template sensors for
   each day's high (8 AM–8 PM), each night's low (8 PM–8 AM) and their 7-day averages.
 
-## Development
+## Contributing
+
+Issues and pull requests are welcome.
+
+- **Bugs:** use the [bug report form](https://github.com/yipe/herpstat/issues/new/choose) and attach **Download
+  diagnostics** (device page → ⋮). It contains the raw `/RAWSTATUS` payload with MAC and IP redacted.
+- **Most wanted:** payloads from models and setups not tested yet: Herpstat 1, 4 or 6 SpyderWeb, humidity probes,
+  other firmware versions, and anything in the `ramping` field while a ramp is running.
+
+Development uses [uv](https://docs.astral.sh/uv/) with Python 3.13 and the Home Assistant 2025.8.3 test harness.
+These are the checks CI runs:
 
 ```sh
-uv sync                      # Python 3.13, pinned to Home Assistant 2025.8.3 test harness
-uv run pytest
-uv run --with ruff ruff check . && uv run --with ruff ruff format --check .
+uv sync
+uv run pytest --cov=custom_components.spyderweb --cov-fail-under=95
+uv run mypy --strict custom_components/spyderweb
+uvx ruff check . && uvx ruff format --check .
 ```
 
 [`docs/API.md`](docs/API.md) documents the device's HTTP interface as reverse-engineered, and

@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in the integration isn't working.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Thanks for reporting. Please attach the integration's diagnostics: they contain the raw `/RAWSTATUS`
+        payload with MAC and IP redacted, which is usually what it takes to fix a parsing problem.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Herpstat model
+      placeholder: Herpstat 2 SpyderWeb
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Herpstat firmware version
+      description: Shown on the device's web status page and in the device info in Home Assistant.
+      placeholder: "5.2"
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+      placeholder: "2025.8.3"
+    validations:
+      required: true
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+      description: From HACS, or `version` in `custom_components/spyderweb/manifest.json`.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Device page → ⋮ → **Download diagnostics**, then drag the file here.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Settings → System → Logs, filtered on `spyderweb`.
+      render: text
