@@ -6,7 +6,7 @@ import json
 
 import aiohttp
 import pytest
-from homeassistant.config_entries import SOURCE_USER
+from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -146,3 +146,22 @@ async def test_reconfigure_unreachable_shows_error(hass: HomeAssistant, aioclien
     assert result["type"] is FlowResultType.FORM
     assert result["errors"] == {"base": "cannot_connect"}
     assert entry.data[CONF_HOST] == HOST
+
+
+async def test_reconfigure_on_loaded_entry_without_update_listener(
+    hass: HomeAssistant, aioclient_mock, payload, entry
+) -> None:
+    """HA 2026.12 errors when an update listener is combined with config-flow reloads."""
+    mock_rawstatus(aioclient_mock, payload)
+    aioclient_mock.get(NEW_URL, text=json.dumps(payload))
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.update_listeners == []
+
+    result = await entry.start_reconfigure_flow(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_HOST: NEW_HOST})
+    assert result["reason"] == "reconfigure_successful"
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.data[CONF_HOST] == NEW_HOST

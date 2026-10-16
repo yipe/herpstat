@@ -6,7 +6,12 @@ import re
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
 from homeassistant.const import CONF_HOST, UnitOfTemperature
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -148,7 +153,9 @@ class SpyderWebConfigFlow(ConfigFlow, domain=DOMAIN):
         return SpyderWebOptionsFlow()
 
 
-class SpyderWebOptionsFlow(OptionsFlow):
+class SpyderWebOptionsFlow(OptionsFlowWithReload):
+    """Reloads the entry when options change (no update listener: HA 2026.12 rejects mixing them)."""
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         if user_input is not None:
             return self.async_create_entry(data=user_input)
