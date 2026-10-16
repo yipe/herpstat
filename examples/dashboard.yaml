@@ -1,0 +1,313 @@
+# Herpstat dashboard: sections view, built-in cards only (HA 2025.8).
+# Paste the whole file into: dashboard -> pencil -> ⋮ -> Raw configuration editor -> Save.
+#
+# History: the recorder keeps every reading ~10 days (recorder: purge_keep_days);
+# hourly/daily min/mean/max for temperatures, setpoints and power are kept forever.
+views:
+  - title: Herpstat
+    path: herpstat
+    icon: mdi:thermometer
+    type: sections
+    max_columns: 3
+    badges:
+      - type: entity
+        entity: sensor.herpstat_lamp_temperature
+        name: Lamp
+        show_name: true
+      - type: entity
+        entity: sensor.herpstat_heat_temperature
+        name: Heater
+        show_name: true
+      - type: entity
+        entity: binary_sensor.herpstat_safety_relay_tripped
+        name: Safety relay
+        show_name: true
+    sections:
+      # ---------------------------------------------------------------- Alerts
+      # Each card only appears while its problem is active.
+      - type: grid
+        cards:
+          - type: markdown
+            grid_options: {columns: full}
+            visibility:
+              - condition: state
+                entity: binary_sensor.herpstat_safety_relay_tripped
+                state: "on"
+            content: >-
+              <ha-alert alert-type="error" title="Safety relay tripped">
+              Power to all outputs is cut. Relay: {{ states('sensor.herpstat_safety_relay') }}
+              </ha-alert>
+          - type: markdown
+            grid_options: {columns: full}
+            visibility:
+              - condition: state
+                entity: binary_sensor.herpstat_lamp_problem
+                state: "on"
+            content: >-
+              <ha-alert alert-type="error" title="Lamp probe problem">
+              {{ state_attr('binary_sensor.herpstat_lamp_problem', 'error_description') }}
+              (code {{ state_attr('binary_sensor.herpstat_lamp_problem', 'error_code') }})
+              </ha-alert>
+          - type: markdown
+            grid_options: {columns: full}
+            visibility:
+              - condition: state
+                entity: binary_sensor.herpstat_heat_problem
+                state: "on"
+            content: >-
+              <ha-alert alert-type="error" title="Heater probe problem">
+              {{ state_attr('binary_sensor.herpstat_heat_problem', 'error_description') }}
+              (code {{ state_attr('binary_sensor.herpstat_heat_problem', 'error_code') }})
+              </ha-alert>
+          - type: markdown
+            grid_options: {columns: full}
+            visibility:
+              - condition: state
+                entity: sensor.herpstat_lamp_temperature
+                state: unavailable
+            content: >-
+              <ha-alert alert-type="warning" title="Herpstat not responding">
+              Home Assistant can't reach the thermostat. It keeps regulating on its own;
+              only the data feed is down. Check that it is powered and on Wi-Fi.
+              </ha-alert>
+
+          # ------------------------------------------------------------ Lamp
+          - type: heading
+            heading: Basking lamp
+            icon: mdi:lightbulb-on
+          - type: sensor
+            entity: sensor.herpstat_lamp_temperature
+            name: Temperature
+            graph: line
+            hours_to_show: 6
+            detail: 2
+            grid_options: {columns: 6}
+          - type: gauge
+            entity: sensor.herpstat_lamp_power
+            name: Power
+            min: 0
+            max: 100
+            grid_options: {columns: 6}
+          - type: markdown
+            grid_options: {columns: full}
+            content: >-
+              {% set t = states('sensor.herpstat_lamp_temperature') | float(none) %}
+              {% set s = states('sensor.herpstat_lamp_setpoint') | float(none) %}
+              {% set p = states('sensor.herpstat_lamp_power') | int(0) %}
+              {% set u = state_attr('sensor.herpstat_lamp_temperature', 'unit_of_measurement') %}
+              {% if t is none or s is none %}No data from the Herpstat.{% else %}
+              {% set d = t - s %}
+              Target **{{ s }}{{ u }}**, now **{{ t }}{{ u }}** ({{ '%+.1f' | format(d) }}{{ u }}), power **{{ p }}%**.
+              {% if d < -5 and p >= 95 %}
+              <ha-alert alert-type="warning">Running near full power but still more than 5° short of target. Check the bulb and that the probe hangs 3-4" under it.</ha-alert>
+              {% endif %}{% endif %}
+
+          # ------------------------------------------------------------ Heater
+          - type: heading
+            heading: Heater
+            icon: mdi:radiator
+          - type: sensor
+            entity: sensor.herpstat_heat_temperature
+            name: Temperature
+            graph: line
+            hours_to_show: 6
+            detail: 2
+            grid_options: {columns: 6}
+          - type: gauge
+            entity: sensor.herpstat_heat_power
+            name: Power
+            min: 0
+            max: 100
+            grid_options: {columns: 6}
+          - type: markdown
+            grid_options: {columns: full}
+            content: >-
+              {% set t = states('sensor.herpstat_heat_temperature') | float(none) %}
+              {% set s = states('sensor.herpstat_heat_setpoint') | float(none) %}
+              {% set p = states('sensor.herpstat_heat_power') | int(0) %}
+              {% set u = state_attr('sensor.herpstat_heat_temperature', 'unit_of_measurement') %}
+              {% if t is none or s is none %}No data from the Herpstat.{% else %}
+              Target **{{ s }}{{ u }}**, now **{{ t }}{{ u }}** ({{ '%+.1f' | format(t - s) }}{{ u }}), power **{{ p }}%**.
+              Alarm thresholds: low {{ states('sensor.herpstat_heat_low_alarm') }}{{ u }}, high {{ states('sensor.herpstat_heat_high_alarm') }}{{ u }}.
+              {% endif %}
+
+      # ------------------------------------------------------------ 24 hours
+      - type: grid
+        cards:
+          - type: heading
+            heading: Last 24 hours
+            icon: mdi:chart-line
+          - type: history-graph
+            title: Temperatures vs targets
+            hours_to_show: 24
+            grid_options: {columns: full}
+            entities:
+              - entity: sensor.herpstat_lamp_temperature
+                name: Lamp
+              - entity: sensor.herpstat_lamp_setpoint
+                name: Lamp target
+              - entity: sensor.herpstat_heat_temperature
+                name: Heater
+              - entity: sensor.herpstat_heat_setpoint
+                name: Heater target
+          - type: history-graph
+            title: Power output
+            hours_to_show: 24
+            grid_options: {columns: full}
+            entities:
+              - entity: sensor.herpstat_lamp_power
+                name: Lamp
+              - entity: sensor.herpstat_heat_power
+                name: Heater
+
+      # ------------------------------------------------------------ Trends
+      - type: grid
+        cards:
+          - type: heading
+            heading: Trends
+            icon: mdi:chart-bar
+          - type: statistic
+            entity: sensor.herpstat_lamp_temperature
+            name: Lamp high today
+            stat_type: max
+            period: {calendar: {period: day}}
+            grid_options: {columns: 6}
+          - type: statistic
+            entity: sensor.herpstat_lamp_temperature
+            name: Lamp low today
+            stat_type: min
+            period: {calendar: {period: day}}
+            grid_options: {columns: 6}
+          - type: statistic
+            entity: sensor.herpstat_heat_temperature
+            name: Heater high today
+            stat_type: max
+            period: {calendar: {period: day}}
+            grid_options: {columns: 6}
+          - type: statistic
+            entity: sensor.herpstat_heat_temperature
+            name: Heater low today
+            stat_type: min
+            period: {calendar: {period: day}}
+            grid_options: {columns: 6}
+          - type: statistics-graph
+            title: Lamp, hourly min / mean / max (7 days)
+            entities: [{entity: sensor.herpstat_lamp_temperature, name: Lamp}]
+            stat_types: [min, mean, max]
+            period: hour
+            days_to_show: 7
+            chart_type: line
+            grid_options: {columns: full}
+          - type: statistics-graph
+            title: Heater, hourly min / mean / max (7 days)
+            entities: [{entity: sensor.herpstat_heat_temperature, name: Heater}]
+            stat_types: [min, mean, max]
+            period: hour
+            days_to_show: 7
+            chart_type: line
+            grid_options: {columns: full}
+          - type: heading
+            heading: Day highs (8 AM–8 PM) and night lows (8 PM–8 AM)
+            heading_style: subtitle
+          - type: entity
+            entity: sensor.herpstat_lamp_day_high_7_day_average
+            name: Lamp, avg day high (7 days)
+            grid_options: {columns: 6}
+          - type: entity
+            entity: sensor.herpstat_lamp_night_low_7_day_average
+            name: Lamp, avg night low (7 days)
+            grid_options: {columns: 6}
+          - type: entity
+            entity: sensor.herpstat_heater_day_high_7_day_average
+            name: Heater, avg day high (7 days)
+            grid_options: {columns: 6}
+          - type: entity
+            entity: sensor.herpstat_heater_night_low_7_day_average
+            name: Heater, avg night low (7 days)
+            grid_options: {columns: 6}
+          - type: history-graph
+            title: Each day's high and night's low (10 days)
+            hours_to_show: 240
+            grid_options: {columns: full}
+            entities:
+              - entity: sensor.herpstat_lamp_day_high
+                name: Lamp day high
+              - entity: sensor.herpstat_lamp_night_low
+                name: Lamp night low
+              - entity: sensor.herpstat_heater_day_high
+                name: Heater day high
+              - entity: sensor.herpstat_heater_night_low
+                name: Heater night low
+          - type: statistics-graph
+            title: 7-day averages over time (90 days)
+            entities:
+              - entity: sensor.herpstat_lamp_day_high_7_day_average
+                name: Lamp day high
+              - entity: sensor.herpstat_lamp_night_low_7_day_average
+                name: Lamp night low
+              - entity: sensor.herpstat_heater_day_high_7_day_average
+                name: Heater day high
+              - entity: sensor.herpstat_heater_night_low_7_day_average
+                name: Heater night low
+            stat_types: [mean]
+            period: day
+            days_to_show: 90
+            chart_type: line
+            grid_options: {columns: full}
+
+      # ------------------------------------------------------------ Device
+      - type: grid
+        cards:
+          - type: heading
+            heading: Device
+            icon: mdi:chip
+          - type: entities
+            title: Lamp settings
+            state_color: true
+            entities:
+              - entity: sensor.herpstat_lamp_mode
+                name: Mode
+              - entity: sensor.herpstat_lamp_setpoint
+                name: Target
+              - entity: sensor.herpstat_lamp_ramping
+                name: Ramping
+              - entity: sensor.herpstat_lamp_power_limit
+                name: Max power
+              - entity: sensor.herpstat_lamp_temperature_max
+                name: High since reset
+              - entity: sensor.herpstat_lamp_temperature_min
+                name: Low since reset
+              - entity: binary_sensor.herpstat_lamp_problem
+                name: Probe problem
+          - type: entities
+            title: Heater settings
+            state_color: true
+            entities:
+              - entity: sensor.herpstat_heat_mode
+                name: Mode
+              - entity: sensor.herpstat_heat_setpoint
+                name: Target
+              - entity: sensor.herpstat_heat_ramping
+                name: Ramping
+              - entity: sensor.herpstat_heat_power_limit
+                name: Max power
+              - entity: sensor.herpstat_heat_low_alarm
+                name: Low alarm
+              - entity: sensor.herpstat_heat_high_alarm
+                name: High alarm
+              - entity: sensor.herpstat_heat_temperature_max
+                name: High since reset
+              - entity: sensor.herpstat_heat_temperature_min
+                name: Low since reset
+              - entity: binary_sensor.herpstat_heat_problem
+                name: Probe problem
+          - type: entities
+            title: Thermostat
+            state_color: true
+            entities:
+              - entity: binary_sensor.herpstat_safety_relay_tripped
+                name: Safety relay tripped
+              - entity: sensor.herpstat_safety_relay
+                name: Relay status
+              - entity: sensor.herpstat_power_resets
+                name: Power resets

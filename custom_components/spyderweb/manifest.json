@@ -1,0 +1,13 @@
+{
+  "domain": "spyderweb",
+  "name": "Herpstat SpyderWeb (local)",
+  "codeowners": ["@yipe"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/yipe/ha-spyderweb",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/yipe/ha-spyderweb/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

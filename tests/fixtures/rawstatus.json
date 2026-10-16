@@ -1,0 +1,51 @@
+{
+    "system": {
+        "mac": "AA:BB:CC:DD:EE:FF",
+        "nickname": "herpstat",
+        "ip": "192.168.1.233",
+        "firmware": 5.2,
+        "numberofoutputs": 2,
+        "powerresets": 1,
+        "safetyrelay": "OFF (Normal Operation)"
+    },
+    "output1": {
+        "outputnickname": "Lamp",
+        "outputmode": "Heat(Dimming)",
+        "probereadingTEMP": 72.0,
+        "currentsetting": 90.0,
+        "ramping": "Not In Session",
+        "endoframpsetting": 0.0,
+        "probereadingTEMPMAX": 72.0,
+        "probereadingTEMPMIN": 66.6,
+        "probereadingRH": 0,
+        "probereadingRHMAX": 0,
+        "probereadingRHMIN": 0,
+        "poweroutput": 29,
+        "poweroutputLIMIT": 100,
+        "enablehighlowalarm": 0,
+        "highalarm": 100.0,
+        "lowalarm": 65.0,
+        "errorcode": 0,
+        "errorcodedescription": "No Errors"
+    },
+    "output2": {
+        "outputnickname": "Heat",
+        "outputmode": "Heat(Dimming)",
+        "probereadingTEMP": 72.9,
+        "currentsetting": 70.0,
+        "ramping": "Not In Session",
+        "endoframpsetting": 0.0,
+        "probereadingTEMPMAX": 75.4,
+        "probereadingTEMPMIN": 69.4,
+        "probereadingRH": 0,
+        "probereadingRHMAX": 0,
+        "probereadingRHMIN": 0,
+        "poweroutput": 0,
+        "poweroutputLIMIT": 100,
+        "enablehighlowalarm": 1,
+        "highalarm": 90.0,
+        "lowalarm": 65.0,
+        "errorcode": 0,
+        "errorcodedescription": "No Errors"
+    }
+}

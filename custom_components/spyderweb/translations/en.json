@@ -1,0 +1,49 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Herpstat SpyderWeb",
+        "data": {
+          "host": "IP address",
+          "temperature_unit": "Temperature unit shown on the Herpstat"
+        },
+        "data_description": {
+          "host": "The Herpstat's IP address, e.g. 192.168.1.50. Give it a DHCP reservation so it doesn't change.",
+          "temperature_unit": "The device does not report its unit; pick the one its display uses."
+        }
+      },
+      "reconfigure": {
+        "title": "Change Herpstat address",
+        "data": {
+          "host": "IP address"
+        },
+        "data_description": {
+          "host": "The Herpstat's new IP address."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Herpstat at that address.",
+      "rawstatus_disabled": "/RAWSTATUS is turned off. On the Herpstat web page go to Admin, tick \"Show Advanced Status Integration Options\", then \"Enable /RAWSTATUS Page\", and Submit.",
+      "invalid_response": "The device answered, but not with Herpstat status JSON."
+    },
+    "abort": {
+      "already_configured": "This Herpstat is already configured.",
+      "reconfigure_successful": "Address updated.",
+      "wrong_device": "That address belongs to a different Herpstat (MAC address doesn't match)."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Poll interval (seconds)",
+          "temperature_unit": "Temperature unit shown on the Herpstat"
+        },
+        "data_description": {
+          "scan_interval": "Minimum 10 s: the vendor warns faster polling blocks the thermostat's other tasks."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,154 @@
+# Herpstat day highs and night lows, plus 7-day averages.
+#
+# Day   = 08:00-20:00, night = 20:00-08:00, matching the Lamp schedule on the Herpstat.
+# If you change the schedule, update every "08:00" and "20:00" in this file.
+#
+# Units: assumes Home Assistant shows temperatures in °F (Settings -> System ->
+# General -> Unit system "US customary"). On a metric system, change every "°F"
+# to "°C", otherwise chained sensors get converted twice.
+#
+# Install: copy to /config/packages/ and make sure configuration.yaml has
+#   homeassistant:
+#     packages: !include_dir_named packages
+# then Developer tools -> YAML -> Check configuration -> Restart.
+#
+# The 7-day averages keep their own list of the last 7 daily values (attribute
+# "values"), so they survive restarts and never double-count a day.
+
+template:
+  # Running extremes for the current day / night window.
+  - triggers:
+      - trigger: time
+        at: "08:00:00"
+        id: day_start
+      - trigger: time
+        at: "20:00:00"
+        id: night_start
+      - trigger: state
+        entity_id:
+          - sensor.herpstat_lamp_temperature
+          - sensor.herpstat_heat_temperature
+        id: reading
+    variables:
+      is_day: "{{ today_at('08:00') <= now() < today_at('20:00') }}"
+      lamp: "{{ states('sensor.herpstat_lamp_temperature') | float(none) }}"
+      heater: "{{ states('sensor.herpstat_heat_temperature') | float(none) }}"
+    sensor:
+      - name: Herpstat Lamp day high running
+        unique_id: herpstat_lamp_day_high_running
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set cur = this.state | float(none) %}
+          {% if trigger.id == 'day_start' %}{{ lamp }}
+          {% elif not is_day or lamp is none %}{{ cur }}
+          {% elif cur is none %}{{ lamp }}
+          {% else %}{{ [lamp, cur] | max }}{% endif %}
+      - name: Herpstat Heater day high running
+        unique_id: herpstat_heater_day_high_running
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set cur = this.state | float(none) %}
+          {% if trigger.id == 'day_start' %}{{ heater }}
+          {% elif not is_day or heater is none %}{{ cur }}
+          {% elif cur is none %}{{ heater }}
+          {% else %}{{ [heater, cur] | max }}{% endif %}
+      - name: Herpstat Lamp night low running
+        unique_id: herpstat_lamp_night_low_running
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set cur = this.state | float(none) %}
+          {% if trigger.id == 'night_start' %}{{ lamp }}
+          {% elif is_day or lamp is none %}{{ cur }}
+          {% elif cur is none %}{{ lamp }}
+          {% else %}{{ [lamp, cur] | min }}{% endif %}
+      - name: Herpstat Heater night low running
+        unique_id: herpstat_heater_night_low_running
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: >
+          {% set cur = this.state | float(none) %}
+          {% if trigger.id == 'night_start' %}{{ heater }}
+          {% elif is_day or heater is none %}{{ cur }}
+          {% elif cur is none %}{{ heater }}
+          {% else %}{{ [heater, cur] | min }}{% endif %}
+
+  # 20:00: record today's day highs.
+  - triggers:
+      - trigger: time
+        at: "20:00:00"
+    variables:
+      lamp: "{{ states('sensor.herpstat_lamp_day_high_running') | float(none) }}"
+      heater: "{{ states('sensor.herpstat_heater_day_high_running') | float(none) }}"
+    sensor:
+      - name: Herpstat Lamp day high
+        unique_id: herpstat_lamp_day_high
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: "{{ lamp if lamp is not none else this.state | float(none) }}"
+      - name: Herpstat Heater day high
+        unique_id: herpstat_heater_day_high
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: "{{ heater if heater is not none else this.state | float(none) }}"
+      - name: Herpstat Lamp day high 7-day average
+        unique_id: herpstat_lamp_day_high_avg7
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set v = ((this.attributes.get('values') or []) + ([lamp] if lamp is not none else []))[-7:] %}
+          {{ (v | sum / v | count) | round(1) if v else none }}
+        attributes:
+          values: "{{ ((this.attributes.get('values') or []) + ([lamp] if lamp is not none else []))[-7:] }}"
+      - name: Herpstat Heater day high 7-day average
+        unique_id: herpstat_heater_day_high_avg7
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set v = ((this.attributes.get('values') or []) + ([heater] if heater is not none else []))[-7:] %}
+          {{ (v | sum / v | count) | round(1) if v else none }}
+        attributes:
+          values: "{{ ((this.attributes.get('values') or []) + ([heater] if heater is not none else []))[-7:] }}"
+
+  # 08:00: record last night's lows.
+  - triggers:
+      - trigger: time
+        at: "08:00:00"
+    variables:
+      lamp: "{{ states('sensor.herpstat_lamp_night_low_running') | float(none) }}"
+      heater: "{{ states('sensor.herpstat_heater_night_low_running') | float(none) }}"
+    sensor:
+      - name: Herpstat Lamp night low
+        unique_id: herpstat_lamp_night_low
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: "{{ lamp if lamp is not none else this.state | float(none) }}"
+      - name: Herpstat Heater night low
+        unique_id: herpstat_heater_night_low
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state: "{{ heater if heater is not none else this.state | float(none) }}"
+      - name: Herpstat Lamp night low 7-day average
+        unique_id: herpstat_lamp_night_low_avg7
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set v = ((this.attributes.get('values') or []) + ([lamp] if lamp is not none else []))[-7:] %}
+          {{ (v | sum / v | count) | round(1) if v else none }}
+        attributes:
+          values: "{{ ((this.attributes.get('values') or []) + ([lamp] if lamp is not none else []))[-7:] }}"
+      - name: Herpstat Heater night low 7-day average
+        unique_id: herpstat_heater_night_low_avg7
+        unit_of_measurement: "°F"
+        device_class: temperature
+        state_class: measurement
+        state: >
+          {% set v = ((this.attributes.get('values') or []) + ([heater] if heater is not none else []))[-7:] %}
+          {{ (v | sum / v | count) | round(1) if v else none }}
+        attributes:
+          values: "{{ ((this.attributes.get('values') or []) + ([heater] if heater is not none else []))[-7:] }}"
