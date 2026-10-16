@@ -1,4 +1,4 @@
-# Herpstat SpyderWeb HTTP API (reverse-engineered)
+# Herpstat SpyderWeb HTTP API
 
 Device: Herpstat 2 SpyderWeb, firmware 5.2, `herpstat.local`, MAC `AA:BB:CC:DD:EE:FF`.
 Server: ESP32 Arduino `WebServer`. Plain HTTP, `Connection: close`. Answers in 50–270 ms.
