@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="custom_components/spyderweb/brand/icon.png" alt="" width="96">
+  <img src="https://raw.githubusercontent.com/yipe/herpstat/main/custom_components/spyderweb/brand/icon.png" alt="" width="96">
 </p>
 
 # Herpstat SpyderWeb for Home Assistant (local)
@@ -7,7 +7,7 @@
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
 [![Validate](https://github.com/yipe/herpstat/actions/workflows/validate.yml/badge.svg)](https://github.com/yipe/herpstat/actions/workflows/validate.yml)
 [![Home Assistant 2025.8+](https://img.shields.io/badge/Home%20Assistant-2025.8%2B-41BDF5.svg)](https://www.home-assistant.io/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/yipe/herpstat/blob/main/LICENSE)
 
 Read-only Home Assistant integration for [Spyder Robotics](https://spyderrobotics.com/) **Herpstat SpyderWeb**
 reptile thermostats. It polls the thermostat's local `/RAWSTATUS` JSON page over your LAN: no cloud, no login,
