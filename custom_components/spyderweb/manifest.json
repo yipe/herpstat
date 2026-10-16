@@ -4,10 +4,24 @@
   "codeowners": ["@yipe"],
   "config_flow": true,
   "dependencies": [],
+  "dhcp": [
+    {
+      "hostname": "herpstat*"
+    },
+    {
+      "registered_devices": true
+    }
+  ],
   "documentation": "https://github.com/yipe/herpstat",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/yipe/herpstat/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "zeroconf": [
+    {
+      "type": "_http._tcp.local.",
+      "name": "herpstat*"
+    }
+  ]
 }

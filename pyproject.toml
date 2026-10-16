@@ -10,6 +10,9 @@ dev = [
     "pycares<5",  # aiodns 3.5 (pinned by HA 2025.8) breaks on pycares 5
     "pytest-cov>=6.2.1",
     "mypy>=2.4.0",
+    "aiodhcpwatcher==1.2.1",
+    "aiodiscover==2.7.1",
+    "cached-ipaddress==0.10.0",
 ]
 
 [tool.uv]

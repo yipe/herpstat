@@ -1,5 +1,6 @@
 {
   "config": {
+    "flow_title": "{name} ({host})",
     "step": {
       "user": {
         "title": "Herpstat SpyderWeb",
@@ -8,7 +9,17 @@
           "temperature_unit": "Temperature unit shown on the Herpstat"
         },
         "data_description": {
-          "host": "The Herpstat's IP address, e.g. 192.168.1.50. Give it a DHCP reservation so it doesn't change.",
+          "host": "The Herpstat's IP address, e.g. 192.168.1.50.",
+          "temperature_unit": "The device does not report its unit; pick the one its display uses."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Herpstat found",
+        "description": "Set up **{name}** at {host}?",
+        "data": {
+          "temperature_unit": "Temperature unit shown on the Herpstat"
+        },
+        "data_description": {
           "temperature_unit": "The device does not report its unit; pick the one its display uses."
         }
       },
@@ -30,7 +41,10 @@
     "abort": {
       "already_configured": "This Herpstat is already configured.",
       "reconfigure_successful": "Address updated.",
-      "wrong_device": "That address belongs to a different Herpstat (MAC address doesn't match)."
+      "wrong_device": "That address belongs to a different Herpstat (MAC address doesn't match).",
+      "cannot_connect": "Could not reach the Herpstat.",
+      "invalid_response": "The device answered, but not with Herpstat status JSON.",
+      "rawstatus_disabled": "/RAWSTATUS is turned off on this Herpstat."
     }
   },
   "options": {

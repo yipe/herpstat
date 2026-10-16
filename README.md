@@ -30,7 +30,8 @@ affects heating.
 - Problem sensors for probe errors and a tripped safety relay, ready for notifications.
 - A Home Assistant repair notice when `/RAWSTATUS` gets switched off, for example by a firmware update.
 - Local and read-only, with a retry for the device's occasional cut-off responses.
-- Set up from the UI; change the IP later with **Reconfigure**; redacted **diagnostics** for bug reports.
+- Found automatically on your network, and follows the Herpstat when its IP address changes.
+- Set up from the UI; **Reconfigure** for manual address changes; redacted **diagnostics** for bug reports.
 - An example dashboard and a day-high/night-low statistics package.
 
 ## Requirements
@@ -39,7 +40,6 @@ affects heating.
 - A Herpstat SpyderWeb with **`/RAWSTATUS` enabled**: on the Herpstat's web page go to **Admin**, tick
   **Show Advanced Status Integration Options**, then **Enable /RAWSTATUS Page**, and **Submit**.
   Check it works: `http://<herpstat-ip>/RAWSTATUS` should show JSON.
-- A fixed IP for the Herpstat (a DHCP reservation on your router) is recommended.
 
 ## Install
 
@@ -50,12 +50,16 @@ affects heating.
 
 **Manual:** copy `custom_components/spyderweb` into your `config/custom_components/` folder and restart.
 
-Then add the integration:
+Then add the integration. Home Assistant usually finds the Herpstat by itself: look under Settings → Devices &
+services → **Discovered** (it can take up to an hour, or until the Herpstat reconnects to Wi-Fi). Otherwise:
 
 [![Open your Home Assistant instance and start setting up the integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=spyderweb)
 
-Or go to Settings → Devices & services → **Add integration** → *Herpstat SpyderWeb (local)*. Enter the IP address
-and the temperature unit your Herpstat displays (the device doesn't report it).
+Or go to Settings → Devices & services → **Add integration** → *Herpstat SpyderWeb (local)* and enter its IP
+address. Either way you pick the temperature unit your Herpstat displays (the device doesn't report it).
+
+You usually don't need a fixed IP: when the router gives the Herpstat a new address, Home Assistant notices its
+DHCP request and updates the integration by itself.
 
 ## Supported devices
 
@@ -155,8 +159,10 @@ Entity IDs depend on your device and output nicknames; check yours under Setting
 ## Known limitations
 
 - **Read-only.** Setpoints, schedules and modes are changed on the Herpstat itself.
-- **No discovery.** The device's network name is its user-set nickname and its MAC prefix is shared by many
-  ESP32 devices, so it is added by IP address.
+- **Discovery and IP following need Home Assistant to see the Herpstat's network traffic** (DHCP requests and
+  mDNS): same network or VLAN, and host networking if Home Assistant runs in Docker. Otherwise add it by IP address
+  and give it a fixed IP. Discovery matches the names seen on a Herpstat 2 (firmware 5.2): DHCP hostname
+  `Herpstat2-<MAC>` and mDNS service `Herpstat`.
 - **Temperature unit is not reported** by the device; pick it during setup (changeable in the options).
 - While the Herpstat's web configuration page is open, `/RAWSTATUS` keeps returning the last values, so readings
   look frozen until you leave it.
@@ -169,7 +175,7 @@ Entity IDs depend on your device and output nicknames; check yours under Setting
 | Symptom | Fix |
 |---|---|
 | Repair: "Herpstat /RAWSTATUS is turned off" (often after a firmware update resets settings) | Re-enable it on the Herpstat (see [Requirements](#requirements)); the repair clears itself on the next update |
-| Entities unavailable, "Could not reach the Herpstat" | Open `http://<ip>/RAWSTATUS` in a browser. If the IP changed, use **Reconfigure**; give it a DHCP reservation |
+| Entities unavailable, "Could not reach the Herpstat" | Open `http://<ip>/RAWSTATUS` in a browser. A new IP is normally picked up by itself within the hour; to fix it now, use **Reconfigure** |
 | Readings stopped changing | Close the Herpstat's web configuration page |
 | Temperatures off by a °F/°C conversion | Integration options → temperature unit must match the Herpstat's display |
 

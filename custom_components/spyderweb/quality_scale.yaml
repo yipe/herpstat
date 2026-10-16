@@ -52,14 +52,8 @@ rules:
   # Gold
   devices: done
   diagnostics: done
-  discovery:
-    status: exempt
-    comment: >-
-      The device advertises _http._tcp under its user-set nickname with no TXT records, and its MAC prefix is a
-      generic Espressif one, so there is nothing reliable to match.
-  discovery-update-info:
-    status: exempt
-    comment: No discovery; the reconfigure flow updates the address.
+  discovery: done
+  discovery-update-info: done
   docs-data-update: done
   docs-examples: done
   docs-known-limitations: done
