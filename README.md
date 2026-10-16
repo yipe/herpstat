@@ -43,10 +43,18 @@ affects heating.
 
 ## Install
 
+**With HACS** (recommended, you get update notifications). If you don't have HACS yet, follow its
+[setup guide](https://hacs.xyz/docs/use/) first: download it, restart, then add the **HACS** integration and link
+it to GitHub.
+
 [![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=yipe&repository=herpstat&category=integration)
 
-**HACS:** use the button above, or HACS → ⋮ → Custom repositories → add `https://github.com/yipe/herpstat`, type
-*Integration*. Download **Herpstat SpyderWeb (local)**, then restart Home Assistant.
+1. Use the button above: it adds this repository to HACS and opens it. Or add it by hand: HACS → ⋮ →
+   **Custom repositories** → `https://github.com/yipe/herpstat`, type *Integration*.
+2. On the repository page, click **Download**, then restart Home Assistant.
+
+If HACS says *"Repository 'yipe/herpstat' exists in the store"*, it's already added: search for **Herpstat** in
+HACS and download it from there.
 
 **Manual:** copy `custom_components/spyderweb` into your `config/custom_components/` folder and restart.
 
