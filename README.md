@@ -21,7 +21,7 @@ from the payload but not yet tested on real hardware. Reports welcome.
 
 ## Install
 
-**HACS:** HACS → ⋮ → Custom repositories → add `https://github.com/yipe/ha-spyderweb`, type *Integration*.
+**HACS:** HACS → ⋮ → Custom repositories → add `https://github.com/yipe/herpstat`, type *Integration*.
 Install **Herpstat SpyderWeb (local)**, then restart Home Assistant.
 
 **Manual:** copy `custom_components/spyderweb` into your `config/custom_components/` folder and restart.
@@ -45,10 +45,13 @@ One device per Herpstat. Entity names use the output nicknames set on the device
 | Temperature, setpoint, power % | Recorded as long-term statistics (history charts) |
 | Humidity | Only if a humidity probe is connected |
 | Problem | `on` when the output reports an error code; code and description in attributes |
-| Mode, ramping, max power, alarm thresholds, high/low since reset | Diagnostic |
+| Ramping | `on` while a temperature ramp is running; raw device text in the `status` attribute (diagnostic) |
+| High/low alarms enabled | Whether the output's alarms are switched on (diagnostic) |
+| Mode, max power, alarm thresholds, high/low since reset | Diagnostic |
 | End-of-ramp setpoint, error text, humidity max/min | Diagnostic, **disabled by default** (enable in the entity settings) |
 
-Per device: **Safety relay tripped** (problem), relay status text, power-reset count.
+Per device: **Safety relay tripped** (problem), relay status text, power-reset count, and internal temperature
+(plus its max) on models/firmware that report it.
 
 **Options:** temperature unit. **Reconfigure** (device page → ⋮) changes the IP address if it moves.
 
@@ -59,7 +62,9 @@ polling faster than every 10 seconds can block the thermostat's other tasks, so 
 If you need a different interval, [turn off polling for the entry and drive updates from an automation](https://www.home-assistant.io/common-tasks/general/#defining-a-custom-polling-interval),
 but stay at 10 seconds or slower.
 
-If the Herpstat can't be reached, its entities become *unavailable* and recover on the next successful update.
+The device occasionally cuts a response short, so a failed or garbled response is retried once (within the same
+10-second timeout) before an update counts as failed. If the Herpstat can't be reached, its entities become
+*unavailable* and recover on the next successful update.
 
 ## Use cases
 

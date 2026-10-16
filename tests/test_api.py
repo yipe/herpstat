@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import json
+
 import aiohttp
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClientMockResponse
 
 from custom_components.spyderweb.api import (
     SpyderWebConnectionError,
@@ -88,3 +91,77 @@ async def test_fetch_errors(hass: HomeAssistant, aioclient_mock, kwargs, error) 
     aioclient_mock.get(URL, **kwargs)
     with pytest.raises(error):
         await fetch_status(async_get_clientsession(hass), HOST)
+
+
+def _sequence(*responses: dict):
+    """side_effect that returns one response per request, from AiohttpClientMockResponse kwargs."""
+    pending = iter(responses)
+
+    async def side_effect(method, url, data):
+        return AiohttpClientMockResponse(method, url, **next(pending))
+
+    return side_effect
+
+
+async def test_fetch_retries_cut_off_body(hass: HomeAssistant, aioclient_mock, payload) -> None:
+    full = json.dumps(payload)
+    aioclient_mock.get(URL, side_effect=_sequence({"text": full[:300]}, {"text": full}))
+    status = await fetch_status(async_get_clientsession(hass), HOST)
+    assert status.outputs[1].nickname == "Lamp"
+    assert aioclient_mock.call_count == 2
+
+
+async def test_fetch_retries_transport_error(hass: HomeAssistant, aioclient_mock, payload) -> None:
+    aioclient_mock.get(
+        URL, side_effect=_sequence({"exc": aiohttp.ClientError()}, {"text": json.dumps(payload)})
+    )
+    status = await fetch_status(async_get_clientsession(hass), HOST)
+    assert status.system.nickname == "herpstat"
+    assert aioclient_mock.call_count == 2
+
+
+async def test_fetch_gives_up_after_second_cut_off_body(hass: HomeAssistant, aioclient_mock) -> None:
+    aioclient_mock.get(URL, text='{"system": {"mac"')
+    with pytest.raises(SpyderWebInvalidResponse):
+        await fetch_status(async_get_clientsession(hass), HOST)
+    assert aioclient_mock.call_count == 2
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"status": 501, "text": "Handler did not handle the request"},
+        {"status": 500, "text": "boom"},
+        {"text": json.dumps({"system": {}})},  # valid JSON, wrong shape: a real answer, not a glitch
+    ],
+)
+async def test_fetch_does_not_retry_real_answers(hass: HomeAssistant, aioclient_mock, kwargs) -> None:
+    aioclient_mock.get(URL, **kwargs)
+    with pytest.raises((SpyderWebRawStatusDisabled, SpyderWebInvalidResponse)):
+        await fetch_status(async_get_clientsession(hass), HOST)
+    assert aioclient_mock.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("text", "active"),
+    [
+        ("Not In Session", False),
+        ("not in session ", False),
+        ("Off", False),
+        ("None", False),
+        ("", False),
+        (None, False),
+        ("In Session", True),
+        ("Ramping 01:30", True),
+    ],
+)
+def test_ramping_active(payload, text, active) -> None:
+    payload["output1"]["ramping"] = text
+    assert parse_status(payload).outputs[1].ramping_active is active
+
+
+def test_internal_temperature_optional(payload) -> None:
+    assert parse_status(payload).system.internal_temperature is None
+    payload["system"].update(internaltemp=78.5, internaltempmax="80.1")
+    system = parse_status(payload).system
+    assert (system.internal_temperature, system.internal_temperature_max) == (78.5, 80.1)

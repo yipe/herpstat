@@ -97,6 +97,7 @@ var options = {title: 'SpyderWeb Output #1 Lamp', ...}
 - **No cookie needed.** Sends `Access-Control-Allow-Origin: *`, so a browser can `fetch()` it directly.
   The content type is mislabelled `text/html`, so parse it as JSON yourself. About 1 KB, 0.1–0.5 s.
 - This is the preferred source for live data. Use the HTML routes only for history.
+- Responses occasionally arrive cut short; retry once.
 
 ```json
 {"system":{"mac":"AA:BB:CC:DD:EE:FF","nickname":"herpstat","ip":"192.168.1.233","firmware":5.2,

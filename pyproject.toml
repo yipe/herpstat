@@ -1,5 +1,5 @@
 [project]
-name = "ha-spyderweb"
+name = "herpstat"
 version = "0.1.0"
 description = "Home Assistant integration for Herpstat SpyderWeb thermostats (dev/test environment)"
 requires-python = ">=3.13.2,<3.14"

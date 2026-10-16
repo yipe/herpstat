@@ -33,6 +33,8 @@ class OutputSensorDescription(SensorEntityDescription):
 @dataclass(frozen=True, kw_only=True)
 class SystemSensorDescription(SensorEntityDescription):
     value_fn: Callable[[System], float | int | str | None]
+    # Created only when the device reports the field (some fields depend on model/firmware).
+    present_fn: Callable[[System], bool] = lambda _: True
 
 
 def _temp(
@@ -115,7 +117,6 @@ OUTPUT_SENSORS: tuple[OutputSensorDescription, ...] = (
         value_fn=lambda o: o.power_limit,
     ),
     _text("mode", lambda o: o.mode),
-    _text("ramping", lambda o: o.ramping),
     # Same text as the problem binary sensor's attributes.
     _text("error", lambda o: o.error_description, enabled=False),
 )
@@ -133,6 +134,25 @@ SYSTEM_SENSORS: tuple[SystemSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda s: s.safety_relay,
     ),
+    SystemSensorDescription(
+        key="internal_temperature",
+        translation_key="internal_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+        value_fn=lambda s: s.internal_temperature,
+        present_fn=lambda s: s.internal_temperature is not None,
+    ),
+    SystemSensorDescription(
+        key="internal_temperature_max",
+        translation_key="internal_temperature_max",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=1,
+        value_fn=lambda s: s.internal_temperature_max,
+        present_fn=lambda s: s.internal_temperature_max is not None,
+    ),
 )
 
 
@@ -143,7 +163,10 @@ async def async_setup_entry(
 ) -> None:
     coordinator = entry.runtime_data
     unit = entry.options.get(CONF_TEMPERATURE_UNIT, UnitOfTemperature.FAHRENHEIT)
-    entities: list[SensorEntity] = [SystemSensor(coordinator, desc) for desc in SYSTEM_SENSORS]
+    system = coordinator.data.system
+    entities: list[SensorEntity] = [
+        SystemSensor(coordinator, desc, unit) for desc in SYSTEM_SENSORS if desc.present_fn(system)
+    ]
     for output in coordinator.data.outputs.values():
         entities.extend(
             OutputSensor(coordinator, output.index, desc, unit)
@@ -176,9 +199,13 @@ class OutputSensor(SpyderWebOutputEntity, SensorEntity):
 class SystemSensor(SpyderWebEntity, SensorEntity):
     entity_description: SystemSensorDescription
 
-    def __init__(self, coordinator: SpyderWebCoordinator, description: SystemSensorDescription) -> None:
+    def __init__(
+        self, coordinator: SpyderWebCoordinator, description: SystemSensorDescription, temperature_unit: str
+    ) -> None:
         super().__init__(coordinator, key=description.key)
         self.entity_description = description
+        if description.device_class is SensorDeviceClass.TEMPERATURE:
+            self._attr_native_unit_of_measurement = temperature_unit
 
     @property
     def native_value(self) -> float | int | str | None:

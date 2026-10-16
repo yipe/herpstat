@@ -862,29 +862,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ha-spyderweb"
-version = "0.1.0"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pycares" },
-    { name = "pytest-cov" },
-    { name = "pytest-homeassistant-custom-component" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=2.4.0" },
-    { name = "pycares", specifier = "<5" },
-    { name = "pytest-cov", specifier = ">=6.2.1" },
-    { name = "pytest-homeassistant-custom-component", specifier = "==0.13.272" },
-]
-
-[[package]]
 name = "habluetooth"
 version = "6.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -934,6 +911,29 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b1/a2/fb274eb1840e71992d03d281b2ba1e709db031b182b371824b030923e0ff/hass_nabucasa-0.111.2.tar.gz", hash = "sha256:976cefec89ea3ad8febfc6dfe8763801733ddffb411d49aab60904cf5ddbecff", size = 91661, upload-time = "2025-08-07T16:57:14.23Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/01/3e4f27d01f243b4827ba7e9892a802dfb9c8e7cb6ff0d2f2cb833fe57cfe/hass_nabucasa-0.111.2-py3-none-any.whl", hash = "sha256:9060fec79c05826dfb34a1e0838c4aa6be1fcf0e643ad98a742947a5ccffe4bb", size = 74262, upload-time = "2025-08-07T16:57:12.479Z" },
+]
+
+[[package]]
+name = "herpstat"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pycares" },
+    { name = "pytest-cov" },
+    { name = "pytest-homeassistant-custom-component" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=2.4.0" },
+    { name = "pycares", specifier = "<5" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
+    { name = "pytest-homeassistant-custom-component", specifier = "==0.13.272" },
 ]
 
 [[package]]

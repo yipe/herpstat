@@ -4,10 +4,10 @@
   "codeowners": ["@yipe"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/yipe/ha-spyderweb",
+  "documentation": "https://github.com/yipe/herpstat",
   "integration_type": "device",
   "iot_class": "local_polling",
-  "issue_tracker": "https://github.com/yipe/ha-spyderweb/issues",
+  "issue_tracker": "https://github.com/yipe/herpstat/issues",
   "requirements": [],
   "version": "0.1.0"
 }
