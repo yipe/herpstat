@@ -50,9 +50,17 @@ async def test_entities(hass: HomeAssistant, aioclient_mock, payload, entry) -> 
 
     # No RH probe: humidity entities are not created.
     assert hass.states.get("sensor.herpstat_lamp_humidity") is None
-    # 2 system + 10 enabled per output; 1 relay + 1 per output.
-    assert len(hass.states.async_entity_ids("sensor")) == 22
-    assert len(hass.states.async_entity_ids("binary_sensor")) == 3
+    # 2 system + 9 enabled per output; 1 relay + 3 per output. No internal temp on fw 5.2.
+    assert len(hass.states.async_entity_ids("sensor")) == 20
+    assert len(hass.states.async_entity_ids("binary_sensor")) == 7
+    assert hass.states.get("sensor.herpstat_internal_temperature") is None
+
+    ramping = hass.states.get("binary_sensor.herpstat_lamp_ramping")
+    assert ramping.state == "off"
+    assert ramping.attributes["status"] == "Not In Session"
+    assert ramping.attributes["device_class"] == "running"
+    assert hass.states.get("binary_sensor.herpstat_lamp_alarms_enabled").state == "off"
+    assert hass.states.get("binary_sensor.herpstat_heat_alarms_enabled").state == "on"
 
     # Rarely used entities exist but are disabled by default.
     registry = er.async_get(hass)
@@ -157,3 +165,15 @@ async def test_poll_invalid_response(hass: HomeAssistant, aioclient_mock, payloa
     await hass.async_block_till_done()
     assert hass.states.get("sensor.herpstat_lamp_temperature").state == STATE_UNAVAILABLE
     assert entry.runtime_data.last_exception.translation_key == "invalid_response"
+
+
+async def test_ramping_and_internal_temperature(hass: HomeAssistant, aioclient_mock, payload, entry) -> None:
+    payload["output1"]["ramping"] = "In Session"
+    payload["system"].update(internaltemp=78.5, internaltempmax=80.1)
+    mock_rawstatus(aioclient_mock, payload)
+    await _setup(hass, entry)
+    assert hass.states.get("binary_sensor.herpstat_lamp_ramping").state == "on"
+    internal = hass.states.get("sensor.herpstat_internal_temperature")
+    assert internal.state == "78.5"
+    assert internal.attributes["unit_of_measurement"] == "°F"
+    assert hass.states.get("sensor.herpstat_internal_temperature_max").state == "80.1"

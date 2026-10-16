@@ -269,10 +269,12 @@ views:
                 name: Mode
               - entity: sensor.herpstat_lamp_setpoint
                 name: Target
-              - entity: sensor.herpstat_lamp_ramping
+              - entity: binary_sensor.herpstat_lamp_ramping
                 name: Ramping
               - entity: sensor.herpstat_lamp_power_limit
                 name: Max power
+              - entity: binary_sensor.herpstat_lamp_alarms_enabled
+                name: High/low alarms
               - entity: sensor.herpstat_lamp_temperature_max
                 name: High since reset
               - entity: sensor.herpstat_lamp_temperature_min
@@ -287,10 +289,12 @@ views:
                 name: Mode
               - entity: sensor.herpstat_heat_setpoint
                 name: Target
-              - entity: sensor.herpstat_heat_ramping
+              - entity: binary_sensor.herpstat_heat_ramping
                 name: Ramping
               - entity: sensor.herpstat_heat_power_limit
                 name: Max power
+              - entity: binary_sensor.herpstat_heat_alarms_enabled
+                name: High/low alarms
               - entity: sensor.herpstat_heat_low_alarm
                 name: Low alarm
               - entity: sensor.herpstat_heat_high_alarm

@@ -47,33 +47,86 @@
   },
   "entity": {
     "sensor": {
-      "temperature": { "name": "{output} temperature" },
-      "setpoint": { "name": "{output} setpoint" },
-      "power": { "name": "{output} power" },
-      "humidity": { "name": "{output} humidity" },
-      "temperature_max": { "name": "{output} temperature max" },
-      "temperature_min": { "name": "{output} temperature min" },
-      "high_alarm": { "name": "{output} high alarm" },
-      "low_alarm": { "name": "{output} low alarm" },
-      "end_of_ramp_setpoint": { "name": "{output} end of ramp setpoint" },
-      "humidity_max": { "name": "{output} humidity max" },
-      "humidity_min": { "name": "{output} humidity min" },
-      "power_limit": { "name": "{output} power limit" },
-      "mode": { "name": "{output} mode" },
-      "ramping": { "name": "{output} ramping" },
-      "error": { "name": "{output} error" },
-      "power_resets": { "name": "Power resets" },
-      "safety_relay": { "name": "Safety relay" }
+      "temperature": {
+        "name": "{output} temperature"
+      },
+      "setpoint": {
+        "name": "{output} setpoint"
+      },
+      "power": {
+        "name": "{output} power"
+      },
+      "humidity": {
+        "name": "{output} humidity"
+      },
+      "temperature_max": {
+        "name": "{output} temperature max"
+      },
+      "temperature_min": {
+        "name": "{output} temperature min"
+      },
+      "high_alarm": {
+        "name": "{output} high alarm"
+      },
+      "low_alarm": {
+        "name": "{output} low alarm"
+      },
+      "end_of_ramp_setpoint": {
+        "name": "{output} end of ramp setpoint"
+      },
+      "humidity_max": {
+        "name": "{output} humidity max"
+      },
+      "humidity_min": {
+        "name": "{output} humidity min"
+      },
+      "power_limit": {
+        "name": "{output} power limit"
+      },
+      "mode": {
+        "name": "{output} mode"
+      },
+      "error": {
+        "name": "{output} error"
+      },
+      "power_resets": {
+        "name": "Power resets"
+      },
+      "safety_relay": {
+        "name": "Safety relay"
+      },
+      "internal_temperature": {
+        "name": "Internal temperature"
+      },
+      "internal_temperature_max": {
+        "name": "Internal temperature max"
+      }
     },
     "binary_sensor": {
-      "safety_relay_tripped": { "name": "Safety relay tripped" },
-      "output_problem": { "name": "{output} problem" }
+      "safety_relay_tripped": {
+        "name": "Safety relay tripped"
+      },
+      "output_problem": {
+        "name": "{output} problem"
+      },
+      "ramping": {
+        "name": "{output} ramping"
+      },
+      "alarms_enabled": {
+        "name": "{output} alarms enabled"
+      }
     }
   },
   "exceptions": {
-    "cannot_connect": { "message": "Could not reach the Herpstat at {host}: {error}" },
-    "invalid_response": { "message": "The Herpstat at {host} did not answer with status JSON: {error}" },
-    "rawstatus_disabled": { "message": "/RAWSTATUS is turned off on the Herpstat at {host}." }
+    "cannot_connect": {
+      "message": "Could not reach the Herpstat at {host}: {error}"
+    },
+    "invalid_response": {
+      "message": "The Herpstat at {host} did not answer with status JSON: {error}"
+    },
+    "rawstatus_disabled": {
+      "message": "/RAWSTATUS is turned off on the Herpstat at {host}."
+    }
   },
   "issues": {
     "rawstatus_disabled": {
