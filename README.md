@@ -232,21 +232,6 @@ Issues and pull requests are welcome.
 - **Most wanted:** readings from setups that haven't been tested yet: Herpstat 1, 4 or 6 SpyderWeb, humidity
   probes, other firmware versions, and what the `ramping` field says while a ramp is running.
 
-Development uses [uv](https://docs.astral.sh/uv/) with Python 3.13 and the Home Assistant 2025.8.3 test harness
-(the oldest supported version). CI runs these checks, plus the tests against the newest Home Assistant release,
-every day:
-
-```sh
-uv sync
-uv run pytest --cov=custom_components.spyderweb --cov-fail-under=95
-uv run mypy --strict custom_components/spyderweb
-uvx ruff check . && uvx ruff format --check .
-```
-
-[`docs/API.md`](docs/API.md) documents the thermostat's HTTP interface, and
-[`tools/herpstat_client.py`](tools/herpstat_client.py) is a small standalone client for it (including the
-login-protected chart history).
-
 ## License
 
 [MIT](https://github.com/yipe/herpstat/blob/main/LICENSE)

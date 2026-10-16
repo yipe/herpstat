@@ -12,7 +12,7 @@ __pycache__/
 build/
 dist/
 
-# Tooling caches and environments (uv.lock IS committed)
+# Tooling caches and environments
 .venv/
 .pytest_cache/
 .mypy_cache/

@@ -1,8 +1,0 @@
-version: 2
-updates:
-  # Python test dependencies are pinned on purpose to the Home Assistant 2025.8 harness
-  # (the minimum supported version), so only the CI actions are kept up to date here.
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
