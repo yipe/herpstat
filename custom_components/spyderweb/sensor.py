@@ -86,7 +86,13 @@ def _text(key: str, fn: Callable[[Output], str | None], *, enabled: bool = True)
 
 OUTPUT_SENSORS: tuple[OutputSensorDescription, ...] = (
     _temp("temperature", lambda o: o.temperature),
-    _temp("setpoint", lambda o: o.setpoint),
+    OutputSensorDescription(
+        key="setpoint",
+        translation_key="setpoint",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda o: o.setpoint,
+    ),
     OutputSensorDescription(
         key="power",
         translation_key="power",
@@ -188,8 +194,22 @@ class OutputSensor(SpyderWebOutputEntity, SensorEntity):
     ) -> None:
         super().__init__(coordinator, index, description.key)
         self.entity_description = description
-        if description.device_class is SensorDeviceClass.TEMPERATURE:
+        # Get the specific output configuration to check its mode
+        output_data = coordinator.data.outputs.get(index)
+        is_humidity_mode = (
+            output_data
+            and output_data.mode
+            and "humidity" in output_data.mode.lower()
+        )
+        # Dynamic overrides for the main setpoint entity
+        if description.key == "setpoint" and is_humidity_mode:
+            self._attr_device_class = SensorDeviceClass.HUMIDITY
+            self._attr_native_unit_of_measurement = PERCENTAGE
+        elif description.device_class is SensorDeviceClass.TEMPERATURE or (description.key == "setpoint" and not is_humidity_mode):
+            self._attr_device_class = SensorDeviceClass.TEMPERATURE
             self._attr_native_unit_of_measurement = temperature_unit
+        elif hasattr(description, 'device_class'):
+            self._attr_device_class = description.device_class
 
     @property
     def native_value(self) -> float | int | str | None:
